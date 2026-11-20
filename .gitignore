@@ -1,0 +1,24 @@
+# Only what is listed below goes into the repository. Everything else in this folder stays local:
+# the pak key and other people's tools (_tools/), save game backups (backups/), game files and paks built
+# from them (src/, dist/, massbrecher/pak/), and the private mods (title/, mask/).
+/*
+!/.gitignore
+!/README.md
+!/LICENSE
+!/docs/
+!/boss-gauntlets/
+!/ngplus-phantom-edges/
+!/jetpack/
+!/massbrecher/
+
+# The Maßbrecher: the mod and its data, and the script that makes the data. Not the source model (large),
+# not the pak experiment, not the table read from the game.
+/massbrecher/*
+!/massbrecher/main.js
+!/massbrecher/data/
+!/massbrecher/model/
+/massbrecher/model/*
+!/massbrecher/model/export_for_mod.py
+
+__pycache__/
+*.pyc

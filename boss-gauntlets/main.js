@@ -85,6 +85,8 @@ const puerts = require("puerts");
 // Where the game itself has the boss, as far as known:
 // arena: the id of a hand-written arena (see ARENAS), a spot on the boss's own ground;
 // bell: the bell that boss guides name beside the fight (phantomblade.guide/bosses, kungfupunk.com/bosses).
+//   Zhu Yuan: the furnace of Pangzhen's Sha-Chi Tower; Wu Lengshuang: The Confinement, in the Mandate
+//   Encampment; Lei Dang: Perfect Vessel Pond, in the Mirage Estate (allthings.how's boss guides).
 // ownBanner: the boss's AI shows the defeat banner itself.
 const MOBS = "/PBZCombatAsset/ActorData/Mobs/", NORMAL = "/Game/RenewalContent/Actors/Mobs/Normal/";
 const cls = (folder, name) => `${folder}${name}.${name}_C`;
@@ -97,10 +99,10 @@ const BOSSES = {
     theHunt: { bell: "Bell_NLES_007", name: "The Hunt", cls: cls(MOBS + "048_HookMan/", "BP_Monster_HookMan"),
         phases: [{ name: "The Hunt, Sixfold Scythe", cls: cls(MOBS + "051_HookMan_P2/", "BP_Monster_HookMan_P2") }] },
     huaQianxiao: { name: "Hua Qianxiao, the Sword Fool", cls: cls(MOBS + "HuaQianXiao/", "BP_Monster_HuaQianXIao"), ownBanner: true, bell: "Bell_LZSJ_003" },
-    zhuYuan: { name: "Zhu Yuan, the Searing Blade", cls: cls(MOBS + "008_GreatBladeMan/", "BP_Monster_HuoDaoDuiZhang"), ownBanner: true },
+    zhuYuan: { name: "Zhu Yuan, the Searing Blade", cls: cls(MOBS + "008_GreatBladeMan/", "BP_Monster_HuoDaoDuiZhang"), ownBanner: true, bell: "Bell_SZ_030" },
     biFeng: { name: "Bi Feng, Commander of the Great Saber", cls: cls(MOBS + "008_GreatBladeMan/", "BP_Monster_GreatBladeMan"), ownBanner: true, arena: "ddsd_blade" },
     snowstorm: { name: "The Blizzard Blademaster", cls: cls(MOBS + "FengXueDaoKe/", "BP_Monster_FengXueDaoKe"), arena: "lyz_white" },
-    wuLengshuang: { name: "Wu Lengshuang, the Soft Sword", cls: cls(MOBS + "074_WuLengShuang/", "BP_Monster_WuLengShuang") },
+    wuLengshuang: { name: "Wu Lengshuang, the Soft Sword", cls: cls(MOBS + "074_WuLengShuang/", "BP_Monster_WuLengShuang"), bell: "Bell_YXZR_010" },
     wuXuan: { name: "Wu Xuan, the Fallen General", cls: cls(NORMAL, "BP_Monster_WuXuan"), ownBanner: true, bell: "Bell_SZ_005" },
     ironMask: { name: "Iron Mask", cls: cls(NORMAL, "BP_Monster_IronMaskMan"), bell: "Bell_DDSD_007" },
     goldMask: { name: "Gold Mask", cls: cls(NORMAL, "BP_Monster_GoldMaskMan"), bell: "Bell_DDSD_007" },
@@ -114,7 +116,7 @@ const BOSSES = {
     goldMasked2: { name: "The Gold-Masked One", cls: cls(MOBS + "067_MoTian/", "BP_Monster_MoTian_LongZhu_02") },
     goldMasked3: { name: "The Gold-Masked One", cls: cls(MOBS + "067_MoTian/", "BP_Monster_MoTian_LongZhu_03") },
     maskTrio: { name: "Two Gold-Masked Ones", group: ["goldMasked1", "goldMasked2"], arena: "fuji_pillar" },
-    leiDang: { name: "Lei Dang, the Tiger Cannon", cls: cls(MOBS + "047_LeiDang/", "BP_Monster_LeiDang"),
+    leiDang: { bell: "Bell_XM_007", name: "Lei Dang, the Tiger Cannon", cls: cls(MOBS + "047_LeiDang/", "BP_Monster_LeiDang"),
         phases: [{ name: "Lei Dang, the One-Armed Tiger", cls: cls(MOBS + "050_LeiDang_P2/", "BP_Monster_LeiDang_P2") }] },
 };
 
@@ -749,7 +751,34 @@ const LEVEL_MAPS = {
     PBZ_Pangzhen_WP: "/Game/Maps/B08_09_10/PBZ_Pangzhen_WP", PBZ_Houjie_WP: "/Game/Maps/B09/PBZ_Houjie_WP",
     PBZ_DengDingShanDao_WP: "/Game/Maps/DengDingShanDao/PBZ_DengDingShanDao_WP",
 };
-const mapOfLevel = (level) => LEVEL_MAPS[level] || (musicZones()._maps || {})[level] || null;
+const mapOfLevel = (level) => LEVEL_MAPS[level] || (musicZones()._maps || {})[level] || registryMap(level);
+
+// A level's map from the game's list of its own files, for the maps the mod has not been in (game test: Wan
+// Jun's bell is in PBZ_Zhengdaodaying_WP, a map not listed above, so his fight stayed where the last one was).
+// The list is read once: every asset under /Game/Maps, by name.
+let registryMaps = null;
+function registryMap(level) {
+    if (!registryMaps) {
+        registryMaps = {};
+        attempt("map list", () => {
+            const found = puerts.$ref(UE.NewArray(UE.AssetData));
+            UE.AssetRegistryHelpers.GetAssetRegistry().GetAssetsByPath("/Game/Maps", found, true, false);
+            const assets = puerts.$unref(found);
+            for (let i = 0; i < assets.Num(); i++) {
+                const name = String(assets.Get(i).AssetName), path = String(assets.Get(i).PackageName);
+                if (path.split("/").pop() == name && !registryMaps[name])
+                    registryMaps[name] = path;
+            }
+            log(`map list: ${assets.Num()} assets under /Game/Maps, ${Object.keys(registryMaps).length} maps by name`);
+        });
+    }
+    const map = registryMaps[level] || null;
+    if (!said["map of " + level]) {
+        said["map of " + level] = true;
+        log(`map of ${level}: ${map || "not found in the game's list"}`);
+    }
+    return map;
+}
 
 // A rung bell as an arena: you arrive where the game itself puts a traveller to that bell (the bell's place plus
 // its teleport offset), looking away from the bell, so the opponent arrives on open ground. null: the bell is

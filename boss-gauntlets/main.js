@@ -22,7 +22,7 @@
 //   Delete / X (Square), twice give up
 // When the run is over the board shows how: a win stamps your rank and lists the best runs, a loss shows the
 // opponent you fell to. When an opponent arrives, a card names it.
-// The last gauntlet holds every opponent and stays sealed until the three paths are won.
+// The last gauntlet holds every opponent and stays sealed until the three longer trials are won.
 // An arena is loaded with the game's own travel, and the same travel brings you back when the run is over. The
 // place "Each opponent's own arena" takes you to each opponent's own arena, where the mod knows it.
 // During a fight the key asks whether to give up.
@@ -60,6 +60,8 @@
 
 const SETTINGS = {
     SOUNDS: false,          // the mod's own sounds (brush strokes, stamp, drum). Off: the engine's media player refuses to play them in this game (game test)
+    FOG_DOORS: true,        // shut the arena's fog doors while its boss is fought, as the game does
+    FOG_DOOR_REACH: 8000,   // cm round the opponent: the doors this near are the arena's
     INTO_ARENA: false,      // false: a fight in a boss's arena starts at the bell beside it. true: on the boss's own spot inside (untested)
     KEY: "G",
     PAD_HOLD: "Gamepad_LeftThumbstick", PAD_PRESS: "Gamepad_DPad_Up",
@@ -107,6 +109,13 @@ const BOSSES = {
     ironMask: { name: "Iron Mask", cls: cls(NORMAL, "BP_Monster_IronMaskMan"), bell: "Bell_DDSD_007" },
     goldMask: { name: "Gold Mask", cls: cls(NORMAL, "BP_Monster_GoldMaskMan"), bell: "Bell_DDSD_007" },
     jadeFace: { name: "Jade-Face", cls: cls(NORMAL, "BP_Monster_JadeMaskMan"), bell: "Bell_DDSD_007" },
+    // Before the Lady's statue, in the hall behind the shrine (allthings.how); his second form has a saw for a head.
+    huangxing: { arena: "ddsd_hall", bell: "Bell_DDSD_007", name: "Huangxing, the Kunlun Renegade", cls: cls(NORMAL, "BP_Monster_MBoss"),
+        phases: [{ name: "Huangxing, the Whirling Executioner", cls: cls(NORMAL, "BP_Monster_MBossVariants"), arena: "ddsd_hall_below" }] },
+    // The last boss of the "Final Battle" ending: reached from the bell The Fallen Dream on Mount Soulrend
+    // (theouterhaven.net). The game has him three times; this is the one of the ending, with his second form.
+    zuoShang: { bell: "Bell_DH_007", name: "Zuo Shang, Shadow Lord of the Order", cls: cls(MOBS + "054_ZuoShang/", "BP_Monster_ZuoShang_Ending"),
+        phases: [{ name: "Zuo Shang, the True Lóng", cls: cls(MOBS + "076_ZuoShang_P2/", "BP_Monster_ZuoShang_P2") }] },
     ironFever: { name: "Stone Hand Iron Fever", cls: cls(MOBS + "Luanshi/", "BP_Monster_LuanShi"), bell: "Bell_LZSJ_007" },
     wanJun: { name: "Wan Jun, the Copper Hammer", cls: cls(MOBS + "057_WanJun/", "BP_Monster_WanJun_JinGua"), bell: "Bell_YXZR_016" },
     // group: its members are fought together; the fight is won when all of them have fallen.
@@ -116,20 +125,73 @@ const BOSSES = {
     goldMasked2: { name: "The Gold-Masked One", cls: cls(MOBS + "067_MoTian/", "BP_Monster_MoTian_LongZhu_02") },
     goldMasked3: { name: "The Gold-Masked One", cls: cls(MOBS + "067_MoTian/", "BP_Monster_MoTian_LongZhu_03") },
     maskTrio: { name: "Two Gold-Masked Ones", group: ["goldMasked1", "goldMasked2"], arena: "fuji_pillar" },
+    // The bosses below are in the game's list of opponents (gauntlet_codex.txt); their bells are the ones the boss
+    // lists name (keengamer.com, allthings.how, mobalytics.gg), found among the game's bells by their names.
+    // Village of Lu.
+    biYuan: { bell: "Bell_SXC_01_06", name: "Master Bi Yuan of the Tianxuan Sect", cls: cls(MOBS + "072_CanQu_BiYuan/", "BP_Monster_BiYuan") },
+    yuzan: { bell: "Bell_SXC_02_03", name: "Yuzan, No. 3 Musician Puppet", cls: cls(MOBS + "068_Yuzan/", "BP_Monster_FemaleVessel_Yuzan") },
+    // In the ravine by the bell Broken Puppet Pit Entrance (keengamer.com). Only in the Trial of Puppets.
+    dusk: { bell: "Bell_SXC_01_03", name: "Dusk, the Puppeteer", cls: cls(MOBS + "DangHui/", "BP_Monster_DangHui") },
+    // At the Thread-Wrapped Giant Tree in the Crimson Forest, on a return visit (keengamer.com). Two forms, then
+    // a secret third in which his three faces fight by themselves (the user's account of the fight): here they
+    // come one after the other. The second form's actor is BP_Monster_YuCong (game test: named in the log when
+    // the user fought him); the others are in the game's list of opponents.
+    yucong: { arena: "fuji_tree", name: "Yucong, No. 34 Twisted Puppet", cls: cls(MOBS + "YuCong/", "BP_Monster_YuCong_P1"),
+        phases: [{ name: "Yucong, No. 34 Twisted Puppet", cls: cls(MOBS + "YuCong/", "BP_Monster_YuCong") },
+            { name: "Chaos Yucong", cls: cls(MOBS + "YuCong/", "BP_Monster_YuCong_HunDun") },
+            { name: "Frost Yucong", cls: cls(MOBS + "YuCong/", "BP_Monster_YuCong_Bing") },
+            { name: "Steel Yucong", cls: cls(MOBS + "YuCong/", "BP_Monster_YuCong_WuLi") }] },
+    // Her third form is her two guardians at once. No bell is known for her: she comes to where the run is.
+    ironFiend: { name: "Iron Fiend, Guardian of the Young Mistress", cls: cls(MOBS + "Luanshi/", "BP_Monster_TieGui") },
+    jadeDancer: { name: "Jade Dancer, Guardian of the Young Mistress", cls: cls(NORMAL, "BP_Monster_YuU") },
+    muXiaokui: { name: "Mu Xiaokui, Young Mistress of the Order", cls: cls(MOBS + "062_MuXiaoKui/", "BP_Monster_MuXiaoKui"),
+        phases: [{ name: "Mu Xiaokui, Queen of Iron and Jade", cls: cls(MOBS + "064_MuXiaoKui_P2/", "BP_Monster_MuXiaoKui_P2") },
+            { name: "Iron Fiend and Jade Dancer", cls: cls(MOBS + "Luanshi/", "BP_Monster_TieGui"), group: ["ironFiend", "jadeDancer"] }] },
+    // Mandate Encampment: the training yard by the bell Training Grounds Depths (allthings.how).
+    yubi: { bell: "Bell_YXZR_017", name: "Yubi, No. 21 Swordfighter Puppet", cls: cls(MOBS + "Yubi/", "BP_Monster_Yubi") },
+    // Pangzhen. Chang Hong rides in his second form.
+    changHong: { arena: "sz_shrine", name: "Chang Hong, the Thunder Spear", cls: cls(MOBS + "049_ChangHong/", "BP_Monster_ChangHong_Spear"),
+        phases: [{ name: "Chang Hong, the Thunder Lancer", cls: cls(MOBS + "053_ChangHong_P2/", "BP_Monster_ChangHong_P2") }] },
+    flame: { bell: "Bell_SZ_025", name: "Flame, the Mask-Bound Lion Dance Grandmaster", cls: cls(NORMAL, "BP_Monster_LionDancer"),
+        phases: [{ name: "The Lion Dance Grandmaster's Last Dance", cls: cls(NORMAL, "BP_Monster_LionDancer_P2") }] },
+    // Meigu Lake.
+    heartpiercer: { bell: "Bell_MGH_011", name: "Heartpiercer, Elite Shadow Warden", cls: cls(MOBS + "070_GuiChai_Cyan/", "BP_Monster_GuiChai_Cyan_ShuangYue") },
+    yanQiansui: { bell: "Bell_MGH_004", name: "Yan Qiansui, the Zither Maiden", cls: cls(MOBS + "073_YanQianSui/", "BP_Monster_YanQianSui") },
+    youLoong: { bell: "Bell_MGH_007", name: "You Loong, the Frenzied Blackwater Crew Leader", cls: cls(MOBS + "056_YouLong/", "BP_Monster_YouLong_Harpoon") },
+    // Mountain of Imprisonment.
+    kuiYanyan: { bell: "Bell_DDSD_006", name: "Kui Yanyan, the Deranged", cls: cls(MOBS + "028_YanYan/", "BP_Monster_YanYan_Club") },
+    // Mirage Estate.
+    yuding: { bell: "Bell_XM_012", name: "Yuding, No. 12 Crescent Blade Puppet", cls: cls(MOBS + "Yuding_00/", "BP_Monster_FemaleVessel_Yuding") },
+    qiuFeng: { bell: "Bell_XM_003", name: "Qiu Feng, the Crimson Boneblade", cls: cls(MOBS + "YingMei/", "BP_Monster_YingMei_RedShadowBoneBlade") },
+    moYuan: { bell: "Bell_XM_DP_005", name: "Mo Yuan, Leader of the Bastion of Mo", cls: cls(MOBS + "067_MoTian/", "BP_Monster_MoTian") },
+    // Mount Soulrend.
+    crusher: { bell: "Bell_DH_003", name: "The Crusher and the Saw", cls: cls(NORMAL, "BP_Monster_PowerMan"),
+        phases: [{ name: "The Crusher, World-Shaking Form", cls: cls(NORMAL, "BP_Monster_PowerMan_P2") }] },
+    mengHua: { bell: "Bell_DH_004", name: "Meng Hua, the Merciful Lady of the Blossom Veil", cls: cls(MOBS + "078_MengHua/", "BP_Monster_MengHua") },
     leiDang: { bell: "Bell_XM_007", name: "Lei Dang, the Tiger Cannon", cls: cls(MOBS + "047_LeiDang/", "BP_Monster_LeiDang"),
         phases: [{ name: "Lei Dang, the One-Armed Tiger", cls: cls(MOBS + "050_LeiDang_P2/", "BP_Monster_LeiDang_P2") }] },
 };
 
 const GAUNTLETS = [
-    { id: "three", name: "Trial of Three", fights: ["jingYe", "huaQianxiao", "ironFever"] },
-    { id: "wanderer", name: "Path of the Wanderer", fights: ["hua", "pengMeng", "theHunt", "jingYe"] },
-    { id: "blades", name: "Path of Blades", fights: ["huaQianxiao", "zhuYuan", "biFeng", "snowstorm", "wuLengshuang", "wuXuan"] },
-    { id: "masks", name: "Path of Masks", fights: ["ironMask", "goldMask", "jadeFace", "ironFever", "wanJun", "leiDang"] },
+    // The trials follow the game's regions, and so grow harder: three to six opponents each.
+    { id: "valley", name: "Trial of the Valley", fights: ["pengMeng", "hua", "theHunt"] },
+    { id: "three", name: "Trial of the Forest", fights: ["jingYe", "huaQianxiao", "ironFever"] },
+    { id: "village", name: "Trial of the Village", fights: ["biYuan", "yuzan", "muXiaokui"] },
+    { id: "mandate", name: "Trial of the Mandate", fights: ["wanJun", "wuLengshuang", "yubi", "zhuYuan"] },
+    { id: "town", name: "Trial of the Town", fights: ["wuXuan", "changHong", "flame"] },
+    { id: "lake", name: "Trial of the Lake", fights: ["heartpiercer", "yanQiansui", "youLoong", "snowstorm"] },
+    { id: "masks", name: "Trial of Masks", fights: ["kuiYanyan", "biFeng", "ironMask", "goldMask", "jadeFace", "huangxing"] },
+    { id: "estate", name: "Trial of the Estate", fights: ["yuding", "qiuFeng", "leiDang", "moYuan"] },
+    { id: "soulrend", name: "Trial of Soulrend", fights: ["crusher", "mengHua", "zuoShang"] },
+    // Apart from the ladder: a trial by theme, whose opponents also stand in the trials of their regions, and
+    // the odd one, two at once. Neither is needed for the last trial.
+    { id: "puppets", name: "Trial of Puppets", fights: ["yuzan", "yubi", "yuding", "dusk", "yucong"] },
     { id: "trio", name: "Twin Visage", fights: ["maskTrio"] },
-    // Every opponent in one run. needs: sealed until each of these gauntlets has been won once.
-    { id: "all", name: "Way of Mortals", needs: ["wanderer", "blades", "masks"],
-        fights: ["pengMeng", "hua", "jingYe", "theHunt", "huaQianxiao", "zhuYuan", "biFeng", "snowstorm", "wuLengshuang",
-            "wuXuan", "ironMask", "goldMask", "jadeFace", "ironFever", "wanJun", "leiDang"] },
+    // Every opponent in one run. needs: sealed until each of these trials has been won once.
+    { id: "all", name: "Trial of Mortals", needs: ["valley", "three", "village", "mandate", "town", "lake", "masks", "estate", "soulrend"],
+        fights: ["pengMeng", "hua", "theHunt", "jingYe", "huaQianxiao", "ironFever", "biYuan", "yuzan", "muXiaokui", "wanJun", "wuLengshuang",
+            "yubi", "zhuYuan", "wuXuan", "changHong", "flame", "heartpiercer", "yanQiansui", "youLoong", "snowstorm", "kuiYanyan", "biFeng", "ironMask",
+            "goldMask", "jadeFace", "huangxing", "yuding", "qiuFeng", "leiDang", "moYuan", "crusher", "mengHua", "zuoShang"] },
 ];
 // Vows: hardships the player takes on before a run. They are kept with the run's result.
 const VOWS = [
@@ -143,10 +205,20 @@ const vowNames = (ids) => (ids || []).map((id) => (VOWS.find((vow) => vow.id == 
 const LADDER_ROWS = 6;          // the board shows this many opponents of a longer gauntlet at a time
 
 // The arenas: open ground near a bell. x, y, z: where you stand, facing yaw; the bosses arrive in front of you.
+// A later form of a boss may have an arena of its own (phases: [{ arena }]): the run travels there between the two.
 const ARENAS = [
     { id: "xigu_axe", name: "The Axemaster's Fall", map: "/Game/Maps/B02/PBZ_Xigu_WP", bell: "Bell_NLES_023", x: -50661, y: 260340, z: -24492, yaw: 216 },
     { id: "fuji_tree", name: "The Thread-Wrapped Giant Tree", map: "/Game/Maps/B03/PBZ_Fujizhilin_WP", bell: "Bell_LZSJ_010", x: 15588, y: 154245, z: -1963, yaw: 328 },
     { id: "pz_lake", name: "Meigu Lakeshore", map: "/Game/Maps/B08_09_10/PBZ_Pangzhen_WP", bell: "Bell_MGH_008", x: -67150, y: 80676, z: 805, yaw: 255 },
+    // Huangxing's two halls. In the story the floor of the Lady's hall breaks under his first form and the fight
+    // goes on in the hall below, which the game keeps as a copy far above the map (its spawner MBoss02_Seq094 at
+    // -60085 -98792 10037551; game test: the journey there and the fight work).
+    // Once he is beaten in the story the hall on the map has no floor in its middle: the floor is an actor of
+    // its own, BP_Hall_Floor, which is gone then (game test: it stands in the copy at -60766 -101022 10038163,
+    // turned 90, and is missing in the hall on the map). props: the mod puts a new one there for the fight.
+    { id: "ddsd_hall", name: "The Lady's Hall", map: "/Game/Maps/DengDingShanDao/PBZ_DengDingShanDao_WP", bell: "Bell_DDSD_007", x: -60715, y: -99350, z: 29347, yaw: -90,
+        props: [{ asset: "BP_Hall_Floor", x: -60766, y: -101022, z: 29859, yaw: 90 }] },
+    { id: "ddsd_hall_below", name: "Beneath the Lady's Hall", map: "/Game/Maps/DengDingShanDao/PBZ_DengDingShanDao_WP", bell: "Bell_DDSD_007", x: -60085, y: -97300, z: 10037700, yaw: -90 },
     { id: "lyz_white", name: "Whiteshadow's Fall", map: "/Game/Maps/B08_09_10/PBZ_Pangzhen_WP", bell: "Bell_LYZ_014", x: -151389, y: -22294, z: 823, yaw: 23 },
     { id: "ddsd_blade", name: "The Commander's Platform", map: "/Game/Maps/DengDingShanDao/PBZ_DengDingShanDao_WP", bell: "Bell_DDSD_005", x: -62013, y: -58239, z: 18363, yaw: 89 },
     // Inside the Long pillar of the Mirrorwood, where the Gold-Masked One is fought: a place of its own, far above
@@ -756,6 +828,93 @@ const mapOfLevel = (level) => LEVEL_MAPS[level] || (musicZones()._maps || {})[le
 // A level's map from the game's list of its own files, for the maps the mod has not been in (game test: Wan
 // Jun's bell is in PBZ_Zhengdaodaying_WP, a map not listed above, so his fight stayed where the last one was).
 // The list is read once: every asset under /Game/Maps, by name.
+// The class of a blueprint by its asset's name, from the game's list of its files. Looked up once (the list of
+// everything under /Game is long: the look takes a moment) and kept in the zones file.
+function assetClass(name) {
+    const all = musicZones();
+    all._classes = all._classes || {};
+    if (!all._classes[name]) {
+        attempt("asset search", () => {
+            const began = Date.now(), found = puerts.$ref(UE.NewArray(UE.AssetData));
+            UE.AssetRegistryHelpers.GetAssetRegistry().GetAssetsByPath("/Game", found, true, false);
+            const assets = puerts.$unref(found);
+            for (let i = 0; i < assets.Num(); i++) {
+                const path = String(assets.Get(i).PackageName);
+                if (path.endsWith("/" + name)) {
+                    all._classes[name] = `${path}.${name}_C`;
+                    break;
+                }
+            }
+            log(`asset ${name}: ${all._classes[name] || "not found"} (${assets.Num()} assets looked through in ${Date.now() - began} ms)`);
+            if (all._classes[name])
+                UE.EasyCsv.SaveStringToFileWithFullPath(JSON.stringify(all), filePath(ZONES_FILE));
+        });
+    }
+    return all._classes[name] ? UE.Class.Load(all._classes[name]) : null;
+}
+
+// Puts an arena's props into the world (see ARENAS, props) and returns the actors made.
+function placeProps(arena) {
+    const made = [];
+    for (const prop of arena.props || [])
+        attempt("prop " + prop.asset, () => {
+            const propClass = assetClass(prop.asset);
+            if (!propClass)
+                return log(`prop ${prop.asset}: its class was not found`);
+            const transform = UE.KismetMathLibrary.MakeTransform(new UE.Vector(prop.x, prop.y, prop.z), new UE.Rotator(0, prop.yaw, 0), new UE.Vector(1, 1, 1));
+            const pending = UE.GameplayStatics.BeginDeferredActorSpawnFromClass(player(), propClass, transform, UE.ESpawnActorCollisionHandlingMethod.AlwaysSpawn, null, 0);
+            const actor = pending ? UE.GameplayStatics.FinishSpawningActor(pending, transform, 0) : null;
+            if (!valid(actor))
+                return log(`prop ${prop.asset}: not made`);
+            made.push(actor);
+            const parts = actor.K2_GetComponentsByClass(UE.StaticMeshComponent.StaticClass());
+            log(`prop ${prop.asset} placed at ${prop.x} ${prop.y} ${prop.z}: ${parts.Num()} mesh parts`);
+        });
+    return made;
+}
+
+function removeProps(of) {
+    for (const actor of of.props || [])
+        attempt("prop removal", () => { if (valid(actor)) actor.K2_DestroyActor(); });
+    of.props = null;
+    openDoors(of);
+}
+
+// The fog doors of an arena. The game shuts an arena with fog doors while its boss is fought: actors whose class
+// has "FogDoor" in its name, with the functions "Close By Mob Script" and "OpenByMobScript" (game test: the
+// Lady's hall has a BP_FogDoorTotalBlock with them). The mod shuts those round the opponent once the player
+// has come close to it, and opens them when the fight is over or the run moves on.
+function closeDoors(around) {
+    const doors = [];
+    attempt("fog doors", () => {
+        const found = puerts.$ref(UE.NewArray(UE.Actor));
+        UE.GameplayStatics.GetAllActorsOfClass(player(), UE.Actor.StaticClass(), found);
+        const actors = puerts.$unref(found);
+        for (let i = 0; i < actors.Num(); i++) {
+            const actor = actors.Get(i), kind = String(UE.KismetSystemLibrary.GetObjectName(actor.GetClass()));
+            if (!/FogDoor/i.test(kind) || typeof actor["Close By Mob Script"] != "function")
+                continue;
+            const at = actor.K2_GetActorLocation(), distance = Math.hypot(at.X - around.X, at.Y - around.Y, at.Z - around.Z);
+            if (distance > SETTINGS.FOG_DOOR_REACH)
+                continue;
+            attempt("fog door close", () => {
+                actor["Close By Mob Script"]();
+                doors.push(actor);
+                log(`fog door shut: ${kind}, ${Math.round(distance / 100)} m from the opponent`);
+            });
+        }
+        if (!doors.length)
+            log("fog doors: none near this opponent");
+    });
+    return doors;
+}
+
+function openDoors(of) {
+    for (const door of of.doors || [])
+        attempt("fog door open", () => { if (valid(door)) door.OpenByMobScript(); });
+    of.doors = null;
+}
+
 let registryMaps = null;
 function registryMap(level) {
     if (!registryMaps) {
@@ -979,6 +1138,7 @@ function finish() {
     log(`counted: ${ended.perfect} perfect deflects, ${ended.deflects} normal deflects, ${ended.hitEvents} hit events, ${ended.healthDrops} health drops`);
     for (const actor of ended.spawned)
         attempt("boss removal", () => { if (valid(actor) && !isDead(actor)) actor.K2_DestroyActor(); });
+    removeProps(ended);
     attempt("player restore", () => {
         const character = player();
         if (character && UE.KismetSystemLibrary.GetPathName(character) == ended.who) {
@@ -1107,11 +1267,25 @@ function fallen() {
     const lastStep = run.step + 1 >= run.steps.length;
     log(`${boss.name} fell` + (lastStep ? `, fight ${run.fight + 1} done in ${clock(Date.now() - run.fightStartedAt)}` : ", next phase"));
     if (!lastStep) {
+        const next = run.steps[run.step + 1], arena = next.arena && openArenas().find((open) => open.id == next.arena);
+        if (arena && run.own) {
+            log(`the next form is fought at ${arena.name}`);
+            run.lastPlace = null;   // the next form arrives in front of the player there
+            run.state = "travel";   // nothing else happens until the journey: the fall is seen first
+            run.nextAt = Number.MAX_SAFE_INTEGER;   // no arrival before the journey is over (it sets the time anew)
+            const moving = run, bossId = fights[run.fight];
+            setTimeout(() => {
+                if (run === moving)
+                    attempt("journey to the next form", () => moveRun(moving, arena, bossId));
+            }, 2500);
+            return;
+        }
         run.state = "pause";
         run.nextAt = Date.now() + 1500;
         return;
     }
     stopMusic(run);
+    openDoors(run);
     slowMotion();
     if (!boss.ownBanner)
         banner();
@@ -1164,6 +1338,12 @@ function runTick() {
         finish();
         return;
     }
+    // An arena's props are put up as soon as the player stands there, before the opponent arrives.
+    if (run.state != "travel" && run.arena && run.arena.props && !run.props) {
+        const at = character.K2_GetActorLocation();
+        if (Math.hypot(at.X - run.arena.x, at.Y - run.arena.y, at.Z - run.arena.z) < 15000)
+            run.props = placeProps(run.arena);
+    }
     const health = attribute(character, "Health");
     if (health < run.lastHealth - 0.5) {
         if (Date.now() - run.lastDropAt > HIT_GAP_MS)
@@ -1176,6 +1356,12 @@ function runTick() {
     if (health <= HEALTH_FLOOR + 0.5 || run.broken) {
         lost();
         return;
+    }
+    // The arena shuts once the player has come close to the opponent in its own arena.
+    if (SETTINGS.FOG_DOORS && run.state == "fight" && run.own && run.arena && !run.doors && valid(run.actor)) {
+        const me = character.K2_GetActorLocation(), it = run.actor.K2_GetActorLocation();
+        if (Math.hypot(me.X - it.X, me.Y - it.Y, me.Z - it.Z) < 1500)
+            run.doors = closeDoors(it);
     }
     if (run.state == "fight") {
         // Raserei: the game's slow-motion system sets an actor's time dilation itself (hit stop, bullet time) and
@@ -2203,8 +2389,9 @@ function menuTick(pc) {
 // Takes the run in progress to another arena, between two fights. The journey loads the map and with it a new
 // player object: the run's hold on the player (health floor, hit listener, the share of health left) is taken
 // off before and put on again after.
-function moveRun(moving, arena) {
+function moveRun(moving, arena, bossId) {
     const character = player();
+    removeProps(moving);
     const share = attribute(character, "Health") / Math.max(1, attribute(character, "Health_Max"));
     const leftAt = Date.now();
     setAttribute(character, "Health_Min", moving.floorBefore); // the journey saves the game: not with our floor
@@ -2233,7 +2420,7 @@ function moveRun(moving, arena) {
     toast(`${arena.name} …`, 3);
     try {
         // A journey that fails leaves the player somewhere: the run goes on there.
-        travelInto(moving.gauntlet.fights[moving.fight + 1], arena, settle, () => settle(null));
+        travelInto(bossId || moving.gauntlet.fights[moving.fight + 1], arena, settle, () => settle(null));
     }
     catch (e) {
         log("the journey could not begin, the fight comes to this place: " + e);

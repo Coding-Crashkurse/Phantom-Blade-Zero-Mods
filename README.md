@@ -46,10 +46,13 @@ runs out the run is over. You do not really die: no death is counted and nothing
 
 ![The gauntlet board](docs/images/gauntlet_board.jpg)
 
-- **Six gauntlets**, from three fights to all sixteen. The last one, "Way of Mortals", stays sealed until
-  the three paths are won.
+- **Nine trials**, one for each region of the game and so growing harder, with three to six opponents
+  each: Valley, Forest, Village, Mandate, Town, Lake, Masks, Estate, Soulrend. Apart from these, "Trial of
+  Puppets" gathers the puppets and their puppeteer, and "Twin Visage" is the odd one, two opponents at once. The last, "Trial of Mortals", holds all 33 opponents and stays sealed until
+  the nine trials are won.
 - **Each opponent in its own arena**, with its own boss music. The game's own travel takes you there and
   back. A gauntlet is sealed until you have rung the bells of its arenas in your playthrough.
+- **Closed arenas**: the arena's fog doors shut while its boss is fought, as in the game.
 - **Vows** make a run harder: No Rest, Frenzy (opponents act a third faster), Might (opponents are 20
   levels stronger), Pure Blade (a hit or an ordinary block ends the run).
 - **Ranks and best runs**: a win is ranked S (no hit taken) to C and the ten fastest wins of each gauntlet
@@ -72,8 +75,9 @@ runs out the run is over. You do not really die: no death is counted and nothing
 | Close | Backspace / G | B (Circle) |
 | Give up a run, or delete a gauntlet's best runs | Delete, twice | X (Square), twice |
 
-Known limits: the mod is still being tested. Bosses that ride (Jing Ye) and the entry in the bell menu
-have had bugs that are fixed but not yet confirmed in play.
+Known limits: the mod is still being tested. Many of the 33 opponents have not been fought in a trial
+yet: an opponent may arrive at the wrong place or a later form may fail to take over. Bosses that ride
+(Jing Ye, Chang Hong) have had bugs. Fights that depend on their arena's own machinery are left out.
 
 ## NG+ Phantom Edges
 

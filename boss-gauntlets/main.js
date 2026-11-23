@@ -1224,7 +1224,9 @@ function arrive() {
 // far from where it was put, its mount is brought there and the rider comes with it. The rider itself is not
 // moved while it has a mount: it would keep its new distance from the horse and float beside it (game test).
 // A boss without a mount that moved itself away is brought back itself.
-const HOME_MS = 6000, HOME_REACH = 1500;
+// HOME_REACH is far: a boss that moves about its own arena is left alone (game test: the lion dancer's second
+// form leapt onto its poles, 16 m off, was brought back, and its helper then took no damage).
+const HOME_MS = 6000, HOME_REACH = 10000;
 const DRIVER_CLASS = "/SGameDriver/BP_SGameDriverComponent.BP_SGameDriverComponent_C";
 function keepHome() {
     if (!run.homes || Date.now() - run.arrivedAt > HOME_MS)
@@ -1357,6 +1359,38 @@ function runTick() {
         lost();
         return;
     }
+    // The opponent's helpers, for the log: other monsters near it that the mod did not make. What they are,
+    // their health and the tags they carry, when first seen and every ten seconds after.
+    if (run.state == "fight" && valid(run.actor) && Date.now() - (run.helpersAt || 0) > 2000) attempt("helper watch", () => {
+        run.helpersAt = Date.now();
+        run.helpers = run.helpers || new Map();
+        const found = puerts.$ref(UE.NewArray(UE.Actor));
+        UE.GameplayStatics.GetAllActorsOfClass(character, UE.Character.StaticClass(), found);
+        const all = puerts.$unref(found), it = run.actor.K2_GetActorLocation();
+        for (let i = 0; i < all.Num(); i++) {
+            const actor = all.Get(i);
+            if (actor === character || run.spawned.includes(actor) || !actor.AttributeSetBase)
+                continue;
+            const at = actor.K2_GetActorLocation();
+            if (Math.hypot(at.X - it.X, at.Y - it.Y, at.Z - it.Z) > 6000)
+                continue;
+            const key = String(UE.KismetSystemLibrary.GetObjectName(actor)), seen = run.helpers.get(key);
+            if (seen && Date.now() - seen < 10000)
+                continue;
+            run.helpers.set(key, Date.now());
+            const tags = attempt("helper tags", () => {
+                const held = puerts.$ref(new UE.GameplayTagContainer());
+                UE.BlueprintGameplayTagLibrary.GetOwnedGameplayTags(actor, held);
+                const list = puerts.$unref(held).GameplayTags, names = [];
+                for (let n = 0; n < list.Num(); n++)
+                    names.push(String(list.Get(n).TagName));
+                return names.join(", ");
+            });
+            log(`helper ${seen ? "still there" : "seen"}: ${key} <${UE.KismetSystemLibrary.GetObjectName(actor.GetClass())}> health ${Math.round(attribute(actor, "Health"))}`
+                + ` of ${Math.round(attribute(actor, "Health_Max"))}, floor ${Math.round(attribute(actor, "Health_Min"))}, dead ${isDead(actor)}, can be damaged ${actor.bCanBeDamaged}`
+                + ` | tags: ${tags === undefined ? "not read" : tags || "none"}`);
+        }
+    });
     // The arena shuts once the player has come close to the opponent in its own arena.
     if (SETTINGS.FOG_DOORS && run.state == "fight" && run.own && run.arena && !run.doors && valid(run.actor)) {
         const me = character.K2_GetActorLocation(), it = run.actor.K2_GetActorLocation();

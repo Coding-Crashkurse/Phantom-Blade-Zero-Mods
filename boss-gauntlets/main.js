@@ -546,6 +546,7 @@ function spawnBoss(boss, at) {
 }
 
 // Brings a spawned boss to the strength of SETTINGS.BOSS_LEVEL with the game's own monster curves.
+let healthFactor = 1;   // what the last boss's health was multiplied by
 function scaleBoss(actor, name, extraLevels) {
     attempt("scaling", () => {
         const gameSystem = UE.SubsystemBlueprintLibrary.GetWorldSubsystem(player(), UE.PBZGameSystem.StaticClass());
@@ -568,6 +569,8 @@ function scaleBoss(actor, name, extraLevels) {
                     set[name] = data;
                 });
             parts.push(`${curveName} x${factor.toFixed(2)}`);
+            if (curveName == "Health")
+                healthFactor = factor;
         }
         log(`${name} scaled to level ${level} (playthrough ${playthrough}): ${parts.join(", ")}; health now ${attribute(actor, "Health_Max")}, attack ${attribute(actor, "Attack")}`);
     });
@@ -1361,7 +1364,7 @@ function runTick() {
     }
     // The opponent's helpers, for the log: other monsters near it that the mod did not make. What they are,
     // their health and the tags they carry, when first seen and every ten seconds after.
-    if (run.state == "fight" && valid(run.actor) && Date.now() - (run.helpersAt || 0) > 2000) attempt("helper watch", () => {
+    if (run.state == "fight" && valid(run.actor) && Date.now() - (run.helpersAt || 0) > 500) attempt("helper watch", () => {
         run.helpersAt = Date.now();
         run.helpers = run.helpers || new Map();
         const found = puerts.$ref(UE.NewArray(UE.Actor));
@@ -1374,6 +1377,15 @@ function runTick() {
             const at = actor.K2_GetActorLocation();
             if (Math.hypot(at.X - it.X, at.Y - it.Y, at.Z - it.Z) > 6000)
                 continue;
+            // A helper's health floor that the game took from the boss's health has grown with the boss: the lion
+            // dancer's last pupil got a floor of 1280 with 500 health and could not be hurt (game test). Put the
+            // floor back to what it is against an unscaled boss.
+            const floor = attribute(actor, "Health_Min"), most = attribute(actor, "Health_Max");
+            if (healthFactor > 1 && floor > 0 && most > 0 && floor >= most) {
+                setAttribute(actor, "Health_Min", floor / healthFactor);
+                setAttribute(actor, "Health", Math.min(attribute(actor, "Health"), most));
+                log(`helper floor put back: ${UE.KismetSystemLibrary.GetObjectName(actor)} ${Math.round(floor)} -> ${Math.round(attribute(actor, "Health_Min"))}, health ${Math.round(attribute(actor, "Health"))} of ${Math.round(most)}`);
+            }
             const key = String(UE.KismetSystemLibrary.GetObjectName(actor)), seen = run.helpers.get(key);
             if (seen && Date.now() - seen < 10000)
                 continue;
